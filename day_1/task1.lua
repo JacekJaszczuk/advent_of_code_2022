@@ -28,3 +28,8 @@ open_file(arg[1])
 table.sort(calories_list)
 print(inspect(calories_list))
 print(calories_list[#calories_list])
+
+
+print("Task 2!")
+local sum = calories_list[#calories_list] + calories_list[#calories_list-1] + calories_list[#calories_list-2]
+print(sum)
