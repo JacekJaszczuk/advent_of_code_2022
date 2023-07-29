@@ -1,5 +1,5 @@
 #!/usr/bin/env lua5.4
-print("Day 13, task 2!")
+print("Day 14, task 1!")
 
 local array2d = require("pl.array2d")
 
