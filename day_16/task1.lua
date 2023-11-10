@@ -46,35 +46,68 @@ local function open_file(filename)
     return nodes
 end
 
--- Function calc pressure for sequence and start_node:
-local function calc_pressue(sequence, start_node)
-    local minutes = 30 - start_node.routes[sequence[1]]
-
-    local pressure = 0
-
-    for i = 1, #sequence, 1
+-- Function find end return AA node:
+function get_aa_node(nodes)
+    for _, node in ipairs(nodes)
     do
-        -- If not have time we, and:
-        if minutes <= 1
+        if node.id == "AA"
         then
-            break
-        end
-
-        -- Get nodes:
-        local node_a = sequence[i]
-        local node_b = sequence[i+1]
-
-        -- Calc pressure
-        minutes = minutes - 1
-        pressure = pressure + node_a.rate*minutes
-
-        if node_b
-        then
-            minutes = minutes - node_a.routes[node_b]
+            return node
         end
     end
+end
 
-    return pressure
+-- Function calc best approximation from seqence:
+local function best_approx_value(minutes, sequence)
+    local sum = 0
+    for _, node in ipairs(sequence)
+    do
+        sum = sum + node.rate
+    end
+
+    return sum * minutes
+end
+
+-- Function run permutation:
+local function run_permutation(best_value, now_value, now_value_sequence, minutes, sequence, old_node)
+    -- Copy sequence:
+    local copy_sequence = {}
+    for node, value in pairs(sequence)
+    do
+        copy_sequence[node] = true
+    end
+
+    -- Get new now_node end run calc:
+    for now_node, _ in pairs(copy_sequence)
+    do
+        -- Calc new pressure:
+        local copy_minutes = minutes
+        local copy_now_value = now_value
+        local copy_now_value_sequence = now_value_sequence
+
+        copy_minutes = copy_minutes - old_node.routes[now_node]
+        copy_minutes = copy_minutes - 1
+
+        -- If we have time:
+        if copy_minutes > 0
+        then
+            copy_now_value = copy_now_value + now_node.rate * copy_minutes
+            copy_now_value_sequence = copy_now_value_sequence .. now_node.id
+
+            -- If now_value is more than best we save it:
+            if copy_now_value > best_value.best_value
+            then
+                best_value.best_value = copy_now_value
+                best_value.best_sequence = copy_now_value_sequence
+                print("Best:", best_value.best_value, best_value.best_sequence)
+            end
+
+            -- Run next iteration:
+            copy_sequence[now_node] = nil
+            run_permutation(best_value, copy_now_value, copy_now_value_sequence, copy_minutes, copy_sequence, now_node)
+            copy_sequence[now_node] = true
+        end
+    end
 end
 
 -- Load data:
@@ -93,28 +126,18 @@ for _, node in ipairs(nodes)
 do
     if node.rate > 0
     then
-        table.insert(good_nodes, node)
+        good_nodes[node] = true
     end
 end
 
 -- Get start node:
-local start_node = nodes[1]
+local start_node = get_aa_node(nodes)
 
 -- Find max pressure:
-local best_pressure = 0
-local best_sequence = ""
-for sequence in permute.order_iter(good_nodes)
-do
-    local now_pressure = calc_pressue(sequence, start_node)
-    if now_pressure > best_pressure
-    then
-        best_pressure = now_pressure
-        best_sequence = ""
-        for _, node in ipairs(sequence)
-        do
-            best_sequence = best_sequence .. node.id
-        end
-    end
-end
+local best_value = {
+    best_value = 0,
+    best_sequence = "",
+}
+run_permutation(best_value, 0, "", 30, good_nodes, start_node)
 
-print("Answer:", best_pressure, best_sequence)
+print("Answer:", best_value.best_value, best_value.best_sequence)
